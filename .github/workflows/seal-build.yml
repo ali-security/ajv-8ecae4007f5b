@@ -1,0 +1,46 @@
+# Build-and-pack only. The project's test suite lives in .travis.yml and runs
+# on Travis (node 10, 12, 14); this workflow exists solely to produce the
+# published npm tarball, which Travis does not upload anywhere we can reach.
+name: seal-build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '14'
+
+      # Same release-date registry snapshot the Travis legs pin, so the
+      # devDependencies that generate lib/dotjs and dist are the 2020 versions
+      # the published tarball was built with.
+      - name: Pin npm registry to the release date
+        run: npm config set registry https://:2020-09-13T16%3A23%3A15.885Z@time-machines-npm.sealsecurity.io/
+
+      - name: Install dependencies
+        run: npm install
+
+      # `files` in package.json ships lib/ and dist/; both are generated.
+      # `build` compiles lib/dot templates into lib/dotjs, `bundle` browserifies
+      # dist. Run them explicitly rather than relying on the deprecated
+      # `prepublish` hook firing.
+      - name: Compile dot templates
+        run: npm run build
+
+      - name: Bundle browser distribution
+        run: npm run bundle
+
+      - name: Pack tarball
+        run: npm pack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-tarball
+          path: ajv-*.tgz
+          if-no-files-found: error

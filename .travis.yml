@@ -1,4 +1,10 @@
 language: node_js
+before_install:
+  # Resolve dev dependencies as they were at the 6.12.5 release date: the live
+  # registry pulls transitive dev deps that dropped this project's Node floor
+  # (puppeteer 25.8.0 needs Node >= 22.12 and its postinstall exits 1), which
+  # kills `npm install` on the node 10 and 12 legs.
+  - npm config set registry https://:2020-09-13T16%3A23%3A15.885Z@time-machines-npm.sealsecurity.io/
 before_script:
   - git submodule update --init
   - npm install -g codeclimate-test-reporter
